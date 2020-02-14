@@ -7,9 +7,6 @@ import ads
 import codecs
 import time
 import sys
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as pl
 import numpy as np
 #import pylab as pl
 import datetime as dt
@@ -20,7 +17,9 @@ from operator import itemgetter
 '''
 Version that only does pubs, no cits
 '''
-monthdir = '/Users/langevelde/Work/Docs/Huib/Publists'
+authors=["Szomoru, A.","Kettenis, M."]
+
+monthdir = '/Users/langevelde/Local/Tmplib'
 dailydir = '/Users/langevelde/Local/Tmplib'
 dostatsupdate = False
 verbose = True
@@ -29,7 +28,7 @@ sorttype = ['paper','confer','book','popular','poster','memo','other']
 pubencoding = 'utf-8'
 version = 'v3'
 
-arroot = '/Users/Langevelde/Work/Web/Live/Archive'
+arroot = '/Users/Langevelde/Local/Tmplib'
 arref = 'Archive'
 
 def GetArgs():
@@ -41,18 +40,6 @@ def GetArgs():
     #               help='an integer for the accumulator')
     parser.add_argument('-n','--noupdate', action = 'store_true',
                    help='do not update from ads')
-    parser.add_argument('-c','--compare', choices=['month','recent','day'],
-                        default = 'month',
-                        help='compare to monthly savings or most recent (yesterday?)')
-    parser.add_argument('-y','--yscale', choices=['linear','log','root'],
-                        default = 'linear',
-                        help ='scale on y axis, lin, log or root')
-    parser.add_argument('-p','--plot', choices=['papsel','citsum','allpap','hindex','hinnow','none'],
-                        default = 'none',
-                        help='plot todo, papsel, citsum, allpap, hindex,none')
-    parser.add_argument('-w','--window', choices=['all','adecade','ayear','amonth','aweek'],
-                        default = 'all',
-                        help='plot window constrained to last ...')
     parser.add_argument('-s','--sort', choices=['original','reverse','byyear','bycits',
                         'typeyear','typecits'], default = 'reverse',
                         help='sort order for html output')
@@ -116,7 +103,7 @@ class Paper():
 
     def Full(self,output):
         '''Print in same format v3'''
-        output.write('HuiBl-v3: {}, {}, {}\n'.format(self.bibcode, self.tag, self.type))
+        output.write('Entry: {}, {}, {}\n'.format(self.bibcode, self.tag, self.type))
         for name in self.authors:
             if (name == self.authors[-1]):
                 output.write('{};\n'.format(name))
@@ -372,7 +359,7 @@ class ListPapers():
             print("ERROR, not implemented") 
 
 def ReadADS_Pickle(dir,file):
-    papers = list(ads.SearchQuery(author="Langevelde, H.", sort="pubdate asc", rows=400))
+    papers = list(ads.SearchQuery(author=MYAUTHOR, sort="pubdate asc", rows=400))
 
     print('From ADS retrieved {} papers'.format(len(papers)))
 
@@ -380,16 +367,16 @@ def ReadADS_Pickle(dir,file):
     pickle.dump(papers, output, pickle.HIGHEST_PROTOCOL)
     output.close()
 
-def ReadADS4Huib():
-    try:
-        papers = list(ads.SearchQuery(author="van Langevelde,", sort="pubdate asc", rows=400, fl=['id', 'bibcode', 'title', 'date','citation_count', 'author', 'citation', 'pubdate', 'year', 'pub', 'volume', 'page']))
-        print('From ADS retrieved {} van Langevelde papers'.format(len(papers)))        
-        papers += list(ads.SearchQuery(author="Langevelde, H.", sort="pubdate asc", rows=400, fl=['id', 'bibcode', 'title', 'date','citation_count', 'author', 'citation', 'pubdate', 'year', 'pub', 'volume', 'page']))
+def ReadADSAuthor(authlist):
+    papers = []
+    for author in authlist:
+        try:
+            papers += list(ads.SearchQuery(author=author, sort="pubdate asc", rows=400, fl=['id', 'bibcode', 'title', 'date','citation_count', 'author', 'citation', 'pubdate', 'year', 'pub', 'volume', 'page']))
+        except:
+            print('No connection with ADS, no updates...')
         print('From ADS retrieved total {} papers'.format(len(papers)))
-    except:
-        print('No connection with ADS, no updates...')
-        papers = []
-    return papers
+        return papers
+
 
 def ReadADSBib(bib):
     papers = list(ads.SearchQuery(bibcode=bib, sort="pubdate asc", rows=100, fl=['id', 'bibcode', 'title', 'date','citation_count', 'author', 'citation', 'pubdate' ]))
@@ -838,7 +825,7 @@ def compfile(filename):
 #find the most recent file
 #define output root
 opts = GetArgs()
-#print opts.plot, opts.noupdate
+
 dodir = '.'
 
 mylist = ListPapers()
@@ -857,8 +844,9 @@ outroot = pubRoot(outpubfile)
 
 if (not opts.noupdate):
     print("Do update:")
-    fadslist = ReadADS4Huib()
-    adslist = clean4Huib(fadslist)
+    #adslist = ReadADS4Huib()
+    adslist = ReadADSAuthor(authors)
+    #adslist = clean4Huib(fadslist)
     fileroot = pubRoot(inpubfile)
     nonbibs = getNonBibs(monthdir,fileroot+'_nopaper.txt')
     newlist = ListPapers()
