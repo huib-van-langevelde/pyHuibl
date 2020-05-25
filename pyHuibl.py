@@ -29,8 +29,10 @@ todo
     compare new citations against the last run. Otherwise the count going down can mas a new citation
  - write docx?
 '''
-monthdir = '/Users/langevelde/Work/Docs/Huib/Publists'
-dailydir = '/Users/langevelde/Work/Mondata/Huibl'
+rootdir = os.environ['HOME']
+
+monthdir = rootdir+'/Work/Docs/Huib/Publists'
+dailydir = rootdir+'/Work/Mondata/Huibl'
 dostatsupdate = False
 verbose = True
 debug = False
@@ -38,7 +40,7 @@ sorttype = ['paper','confer','book','popular','poster','memo','other']
 pubencoding = 'utf-8'
 version = 'v3'
 
-arroot = '/Users/Langevelde/Work/Web/Live/Archive'
+arroot = rootdir+'/Work/Web/Live/Archive'
 arref = 'Archive'
 
 def GetArgs():
@@ -1171,7 +1173,7 @@ def pubRoot(filename):
     
 def compfile(filename):
     '''returns a compact name for our files'''
-    home = '/Users/langevelde'
+    home = rootdir
     replhome = '~'
     return filename.replace(home, replhome)
 
