@@ -35,7 +35,9 @@ monthdir = rootdir+'/Work/Docs/Huib/Publists'
 dailydir = rootdir+'/Work/Mondata/Huibl'
 dostatsupdate = False
 verbose = True
-debug = False
+debug = True
+Nadspol = 0
+if debug: print('Counting:',Nadspol)
 sorttype = ['paper','confer','book','popular','poster','memo','other']
 pubencoding = 'utf-8'
 version = 'v3'
@@ -944,12 +946,14 @@ def updateCits(stats, mylist, update):
             creps = []
             for cit in paper.citlist:
                 try:
+                    Nadspol += 1
                     citads = ReadADSBib(cit)
-                    if debug: print(cit, citads[0], 'd:',citads[0].pubdate)
+                    if debug: print(Nadspol, cit, citads[0], 'd:',citads[0].pubdate)
                     entry = { 'bibcode': cit, 'pubdate':citads[0].pubdate, 
                     'author': citads[0].author[0].split(',')[0], 
                     'title':citads[0].title[0]}
                 except:
+                    if debug: print(Nadspol,' failed...')
                     entry =  { 'bibcode': cit, 'pubdate': '',
                     'author': '', 
                     'title':''}
