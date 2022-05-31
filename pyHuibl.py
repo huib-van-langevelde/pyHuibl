@@ -35,8 +35,11 @@ monthdir = rootdir+'/Work/Docs/Huib/Publists'
 dailydir = rootdir+'/Work/Mondata/Huibl'
 dostatsupdate = False
 verbose = True
-debug = True
+debug = False
 Nadspol = 0
+#doAdsPol = False
+#exAdsPol = ['2017ApJ...848L..12A']
+#maxpolads = 500
 if debug: print('Counting:',Nadspol)
 sorttype = ['paper','confer','book','popular','poster','memo','other']
 pubencoding = 'utf-8'
@@ -69,6 +72,7 @@ def GetArgs():
     parser.add_argument('-s','--sort', choices=['original','reverse','byyear','bycits',
                         'typeyear','typecits'], default = 'reverse',
                         help='sort order for html output')
+    parser.add_argument('-x','--maxpolads',type=int,default=500)
     args = parser.parse_args()
     return args
 
@@ -943,6 +947,7 @@ def updateCits(stats, mylist, update):
                 #there could be more if the date is not unique            
                 return       
         
+            global Nadspol
             creps = []
             for cit in paper.citlist:
                 try:
@@ -988,10 +993,12 @@ def updateCits(stats, mylist, update):
                 else:
                     print('{} has citation mutations,  was {:3d}, now {:3d}'.format(paper.strSum(),paper.oldcits,paper.cits))
                 #if you need to know, op ads for bibcode
-                if (paper.cits > 0):
+                if (paper.cits > 0 and paper.cits < opts.maxpolads):
                     repmostrecent(nnew, paper)
+                elif (paper.cits < 1):
+                    print('Initialising citations...')       
                 else:
-                    print('Initialising citations...')        
+                    print(paper.cits,' is more than max for polling (',opts.maxpolads,')') 
             #now update stats
             if not paper.bibcode in [pap.bib for pap in stats.papers]:
                 stats.addPaper(paper.bibcode,paper.authors[0].split(',')[0],paper.tag,paper.type,paper.cits)
