@@ -37,8 +37,9 @@ dostatsupdate = False
 verbose = True
 debug = False
 Nadspol = 0
-doAdsPol = False
-exAdsPol = ['2017ApJ...848L..12A']
+#doAdsPol = False
+#exAdsPol = ['2017ApJ...848L..12A']
+maxpolads = 500
 if debug: print('Counting:',Nadspol)
 sorttype = ['paper','confer','book','popular','poster','memo','other']
 pubencoding = 'utf-8'
@@ -991,10 +992,12 @@ def updateCits(stats, mylist, update):
                 else:
                     print('{} has citation mutations,  was {:3d}, now {:3d}'.format(paper.strSum(),paper.oldcits,paper.cits))
                 #if you need to know, op ads for bibcode
-                if (paper.cits > 0 and paper.bibcode not in exAdsPol):
+                if (paper.cits > 0 and paper.cits < maxpolads):
                     repmostrecent(nnew, paper)
+                elif (paper.cits < 1):
+                    print('Initialising citations...')       
                 else:
-                    print('Initialising citations...')        
+                    print(paper.cits,' is more than max for polling (',maxpolads,')') 
             #now update stats
             if not paper.bibcode in [pap.bib for pap in stats.papers]:
                 stats.addPaper(paper.bibcode,paper.authors[0].split(',')[0],paper.tag,paper.type,paper.cits)
