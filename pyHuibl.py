@@ -34,7 +34,7 @@ rootdir = os.environ['HOME']
 monthdir = rootdir+'/Work/Docs/Huib/Publists'
 dailydir = rootdir+'/Work/Mondata/Huibl'
 dostatsupdate = False
-verbose = True
+verbose = False
 debug = False
 Nadspol = 0
 #doAdsPol = False
@@ -612,6 +612,7 @@ class ListPapers():
         nhead = 0
         for line in datain:
             line = line.rstrip('\n')
+            if debug: print(line)
             foundmatch = False
             for ltype in list(v3lines.keys()):
                 #print ltype, oldlines[ltype]
@@ -964,17 +965,26 @@ def updateCits(stats, mylist, update):
                     'title':''}
                 creps.append(entry)
     
+            print('DZ:',creps)
             newlist = sorted(creps, key=itemgetter('pubdate'))
             for i in range(nnew):
                 repentry(i,newlist[-1-i])
 
+            print('D0:',nnew,paper)
             i = nnew
             nmore = 0
+            # This is an attempt to print the mutations when going down
+            #Huib enter D1 and D2
+            '''
+            print('D1:',nnew,len(newlist),i)
             while (i<(len(newlist)-1) and newlist[-1-i-1]['pubdate'] == newlist[-1-i]['pubdate']):
                 nmore += 1
                 repentry(i,newlist[-1-i])
                 i = i+1
+                print('D2:',nnew,len(newlist),i)
+
             if (nmore > 0): print('Included ',nmore,' entries with same pubdate.')
+            '''
             return
 
         ncittot = 0
@@ -1207,7 +1217,9 @@ incsvfile = findLatestCSV()
 outcsvfile = newCSV(incsvfile)
 print('CSV Files, in:',compfile(incsvfile),' out:',compfile(outcsvfile))
 
+if debug: print("...Reading in data")
 mylist.ReadPubV3(inpubfile, pubencoding)
+if debug: print("...Reading in stats")
 curstats = CitStats()
 curstats.readStats(incsvfile)
 
@@ -1220,6 +1232,8 @@ print('Today:',update, ' compare to:', recdate)
 
 mylist.addStats(curstats)
 outroot = pubRoot(outpubfile)
+
+if debug: print("...Start update")
 
 if (not opts.noupdate):
     print("Do update:")
