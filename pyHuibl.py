@@ -8,7 +8,7 @@ import codecs
 import time
 import sys
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 import matplotlib.pyplot as pl
 import numpy as np
 #import pylab as pl
@@ -360,8 +360,8 @@ class CitStats():
                          1.2*box.width, box.height * 0.8])
             ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.07), ncol=4, fontsize=8)
 
-            wm = pl.get_current_fig_manager()
-            wm.window.wm_geometry("1400x400+5+5")
+            #wm = pl.get_current_fig_manager()
+            #wm.window.wm_geometry("1400x400+5+5")
             pl.show()  
     
         x = []
@@ -612,7 +612,7 @@ class ListPapers():
         nhead = 0
         for line in datain:
             line = line.rstrip('\n')
-            if debug: print(line)
+            #if debug: print(line)
             foundmatch = False
             for ltype in list(v3lines.keys()):
                 #print ltype, oldlines[ltype]
@@ -965,26 +965,22 @@ def updateCits(stats, mylist, update):
                     'title':''}
                 creps.append(entry)
     
-            print('DZ:',creps)
             newlist = sorted(creps, key=itemgetter('pubdate'))
-            for i in range(nnew):
-                repentry(i,newlist[-1-i])
+            if (nnew>0):
+                for i in range(nnew):
+                    repentry(i,newlist[-1-i])
 
-            print('D0:',nnew,paper)
-            i = nnew
-            nmore = 0
-            # This is an attempt to print the mutations when going down
-            #Huib enter D1 and D2
-            '''
-            print('D1:',nnew,len(newlist),i)
-            while (i<(len(newlist)-1) and newlist[-1-i-1]['pubdate'] == newlist[-1-i]['pubdate']):
-                nmore += 1
-                repentry(i,newlist[-1-i])
-                i = i+1
-                print('D2:',nnew,len(newlist),i)
+                i = nnew
+                nmore = 0
+            
+                #if debug: print('D1:',nnew,len(newlist),i)
+                while (i<(len(newlist)-1) and newlist[-1-i-1]['pubdate'] == newlist[-1-i]['pubdate']):
+                    nmore += 1
+                    repentry(i,newlist[-1-i])
+                    i = i+1
+                    #if debug: print('D2:',nnew,len(newlist),i)
 
-            if (nmore > 0): print('Included ',nmore,' entries with same pubdate.')
-            '''
+                if (nmore > 0): print('Included ',nmore,' entries with same pubdate.')
             return
 
         ncittot = 0
