@@ -3,6 +3,7 @@
 import re
 import os
 import pickle
+#import ads.sandbox as ads
 import ads
 import codecs
 import time
@@ -28,6 +29,11 @@ todo
 - Because the arXiv counts make the citations go up and down, it is alos useful to have a csv of the last run and 
     compare new citations against the last run. Otherwise the count going down can mas a new citation
  - write docx?
+ - enter new switch to write bibcode/stats for papers with specific co-author 
+ 
+ - writes a csv file with co-authored papers
+ - which can then be used for plotting. Plot tags are taken form intermediary file
+ 
 '''
 rootdir = os.environ['HOME']
 
@@ -66,13 +72,16 @@ def GetArgs():
     parser.add_argument('-p','--plot', choices=['papsel','citsum','allpap','hindex','hinnow','none'],
                         default = 'none',
                         help='plot todo, papsel, citsum, allpap, hindex,none')
-    parser.add_argument('-w','--window', choices=['all','adecade','ayear','amonth','aweek'],
+    parser.add_argument('-w','--window', choices=['all','adecade','a5year','a4year','a3year','ayear','amonth','aweek'],
                         default = 'all',
                         help='plot window constrained to last ...')
     parser.add_argument('-s','--sort', choices=['original','reverse','byyear','bycits',
                         'typeyear','typecits'], default = 'reverse',
                         help='sort order for html output')
     parser.add_argument('-x','--maxpolads',type=int,default=500)
+    parser.add_argument('-a','--coauth',type=str,default='')
+    parser.add_argument('-f','--bibfile',type=str,default='')
+
     args = parser.parse_args()
     return args
 
@@ -100,8 +109,10 @@ class CitStats():
         for date in self.dates:
             tmp = date.split('/')
             year = int(tmp[2])
-            if (year > 50 ): year += 1900
-            else: year += 2000
+            #print('y e a r:',year)
+            if (year < 1000):
+                if (year > 50 ): year += 1900
+                else: year += 2000
             dtdates.append(dt.datetime(year,int(tmp[1]),int(tmp[0])))
         return dtdates
     def dump(self,output):
@@ -186,7 +197,27 @@ class CitStats():
     def mostRecent(self):
         return self.dates[-1]
 
+    def reportGrads(self, top):
+        x = self.dtDates()
+        #print('Top:',top,len(x))
+        for pap in self.papers:
+            if (pap.bib == top):
+                firstd = x[-1]
+                Found = False
+                idate = 0
+                while (not Found and idate<len(pap.cits)-1):
+                    if (pap.cits[idate] > 0):
+                        Found = True
+                        firstd = x[idate]
+                    idate+=1
+                if (pap.cits[-1]==0): 
+                    grad=0
+                else:
+                    grad = pap.cits[-1]/(float((x[-1]-firstd).days))
+        print('Grad:',top,firstd,grad*365.)
+
     def extrPlots(self, top):
+        #return dates, scores and tag for top bibcode, for plor
         x = self.dtDates()
         y = []
         name = ''
@@ -308,7 +339,7 @@ class CitStats():
                 if (not pap.bib in plotlist): plotlist.append(pap.bib)                     
         return plotlist
         
-    def reportCits(self, pltype, plwindow, yscale ):
+    def reportCits(self, pltype, plwindow, yscale, biblist, plttags ):
         '''
         Generate report on citations by plotting
         '''
@@ -334,18 +365,26 @@ class CitStats():
             myscale = 'linear'
             if (yscale=='log'): myscale= 'log'
             
-            x = np.array(xlistx)
-            y = np.array(ylisty)
+            #print('>1>',type(xlistx),type(ylisty),type(xlistx[0]),type(ylisty[0]),type(xlistx[0][0]),type(ylisty[0][0]),xlistx[0][0])
+            x = np.array(xlistx,dtype=dt.datetime)
+            #for lll in ylisty:
+            #    print('>>>>>',len(lll),lll[0])
+            y = np.array(ylisty,dtype='int')
             mycol=['r','g','b','k','m',
                    'darkcyan','orange','maroon',
                    'navy','teal', 'gray', 'purple'] #omitting 'y' and 'w'
-            pl.title("Huib's citation extract")
+            pl.title("citation tracking")
             pl.ylabel('citations')
             pl.xlabel('date')
-            print(type(x),x.shape,type(y),y.shape)
+            #print('>2>',type(x),x.shape,type(y),y.shape)
             #for xval in 
+            #print('>3>',x,xmin)
+            #tmpmin = x - xmin
+            #print('>4>',type(x[0]),type(x[0][0]),type(xmin))
             ibeg = (abs(x - xmin)).argmin()
+            #print('>5>',ibeg,x[1][-1],xmin)
             pl.xlim(right=x[0][-1],left=xmin)
+            print('shape:',y.shape)
             pl.ylim(bottom=max(1,0.99*np.min(y[:,ibeg:-1])), top=1.01*np.max(y[:,ibeg:-1]))
             print('YLim:',np.min(y[:,ibeg:-1]),np.max(y[:,ibeg:-1]))
             ic = 0
@@ -368,16 +407,24 @@ class CitStats():
         y = []
         tag = []
         sumtag,sumx,sumy = self.sumPlots()
-        hixtag,hix,hiy,hinnow = self.indexH()    
-        arts = self.selBibCodes()
+        hixtag,hix,hiy,hinnow = self.indexH()
+        if (len(biblist)==0):    
+            biblist = self.selBibCodes()
         
         if( pltype == 'hinnow' ):
             plotHinnow(hinnow)
         
         elif (pltype == 'papsel'):
-            for art in arts:
+            for ib, art in enumerate(biblist):
+                #print('Loop:',art,ib)
                 tmptag,tmpx,tmpy = self.extrPlots(art)
-                tag.append(tmptag)
+                #These arre the tags from the big csv files
+                #print('Tmp tag:',tmptag,len(tmpx),len(tmpy))
+                self.reportGrads(art)
+                if (len(plttags)==0):
+                    tag.append(tmptag)
+                else:
+                    tag.append(plttags[ib])
                 x.append(tmpx)
                 y.append(tmpy)
         elif (pltype == 'citsum'):
@@ -389,8 +436,8 @@ class CitStats():
              y.append(hiy)
              tag.append(hixtag)
         elif (pltype == 'allpap'):
-            arts = self.allCodes()
-            for art in arts:
+            biblist = self.allCodes()
+            for art in biblist:
                 tmptag,tmpx,tmpy = self.extrPlots(art)
                 tag.append(tmptag)
                 x.append(tmpx)
@@ -403,6 +450,9 @@ class CitStats():
             xmin = x[0][0]
             if (plwindow != 'all'):
                 if (plwindow=='adecade'): deltaday = 3653
+                if (plwindow=='a5year'): deltaday = 1826
+                if (plwindow=='a4year'): deltaday = 1520 #should be 1460
+                if (plwindow=='a3year'): deltaday = 1095                
                 if (plwindow=='ayear'): deltaday = 365
                 if (plwindow=='amonth'): deltaday = 30
                 if (plwindow=='aweek'): deltaday = 7
@@ -576,7 +626,7 @@ class ListPapers():
         self.list.append(paper)
     def SumList(self):
         for paper in self.list:
-            print(paper.strSum())
+            print('Sum:',paper.strSum())
     def FullList(self, outfile, mycoding):
         output = open(outfile,'w', encoding = mycoding)
         for paper in self.list:
@@ -590,6 +640,13 @@ class ListPapers():
                 if ( paper.bibcode == citpap.bib ):
                     paper.oldcits = citpap.cits[-1]
                     paper.cits = paper.oldcits
+    def SelCoAuth(self, coauth):
+        biblist = []
+        for paper in self.list:
+            for auth in paper.authors:
+                if (coauth in auth):
+                    biblist.append(paper.bibcode)
+        return biblist
 
     def ReadPubV3(self,file, myencoding ):
         '''parsing v3 file and filling list of papers'''
@@ -612,7 +669,7 @@ class ListPapers():
         nhead = 0
         for line in datain:
             line = line.rstrip('\n')
-            #if debug: print(line)
+            if debug: print(line)
             foundmatch = False
             for ltype in list(v3lines.keys()):
                 #print ltype, oldlines[ltype]
@@ -721,7 +778,17 @@ class ListPapers():
             for pap in reversed(self.list):
                 pap.PubHtml(htmlout)
         else:
-            print("ERROR, not implemented") 
+            print("ERROR, not implemented")
+            
+    def writeCSV(self, biblist, dir, outroot):
+        bibcsv =  open(dir+'/'+outroot+'bib.csv','w',encoding='ascii',errors='xmlcharrefreplace')
+        print('Writing:'+dir+'/'+outroot+'bib.csv')
+        for pap in self.list:
+            if (pap.bibcode in biblist):
+                bibcsv.write(pap.bibcode+';'+pap.authors[0]+';'+str(len(pap.authors))+
+                ';'+pap.tag+';'+pap.actions[0][0]+'\n')
+            
+
 
 def ReadADS_Pickle(dir,file):
     papers = list(ads.SearchQuery(author="Langevelde, H.", sort="pubdate asc", rows=400))
@@ -966,21 +1033,16 @@ def updateCits(stats, mylist, update):
                 creps.append(entry)
     
             newlist = sorted(creps, key=itemgetter('pubdate'))
-            if (nnew>0):
-                for i in range(nnew):
-                    repentry(i,newlist[-1-i])
+            for i in range(nnew):
+                repentry(i,newlist[-1-i])
 
-                i = nnew
-                nmore = 0
-            
-                #if debug: print('D1:',nnew,len(newlist),i)
-                while (i<(len(newlist)-1) and newlist[-1-i-1]['pubdate'] == newlist[-1-i]['pubdate']):
-                    nmore += 1
-                    repentry(i,newlist[-1-i])
-                    i = i+1
-                    #if debug: print('D2:',nnew,len(newlist),i)
-
-                if (nmore > 0): print('Included ',nmore,' entries with same pubdate.')
+            i = nnew
+            nmore = 0
+            while (i<(len(newlist)-1) and newlist[-1-i-1]['pubdate'] == newlist[-1-i]['pubdate']):
+                nmore += 1
+                repentry(i,newlist[-1-i])
+                i = i+1
+            if (nmore > 0): print('Included ',nmore,' entries with same pubdate.')
             return
 
         ncittot = 0
@@ -1193,9 +1255,22 @@ def compfile(filename):
     home = rootdir
     replhome = '~'
     return filename.replace(home, replhome)
+    
+def readBibCSV(infile):
+    inf = open(infile,'r',encoding='ascii')
+    print('Reading biblist from',infile)
+    biblist=[]
+    pltaglist=[]
+    for line in inf:
+        fields = line.rstrip('\n').split(';')
+        if debug: print('Bib fields:',fields)
+        biblist.append(fields[0])
+        pltaglist.append(fields[3])
+    return biblist,pltaglist
 
 #-----------------------------------------------------------------------------------------
 # Main starts
+
 
 #find the most recent file
 #define output root
@@ -1229,6 +1304,15 @@ print('Today:',update, ' compare to:', recdate)
 mylist.addStats(curstats)
 outroot = pubRoot(outpubfile)
 
+theBibs = []; pltTags = []
+if (opts.coauth != ''):
+    print('NEW:',opts.coauth)
+    theBibs = mylist.SelCoAuth(opts.coauth)
+    print('Finding these:',theBibs)
+elif (opts.bibfile != ''):
+    theBibs,pltTags = readBibCSV(opts.bibfile)
+    print('Using these bibs:',theBibs)
+
 if debug: print("...Start update")
 
 if (not opts.noupdate):
@@ -1240,13 +1324,16 @@ if (not opts.noupdate):
     newlist = ListPapers()
     newlist.list = updatePubs(adslist, mylist.list, nonbibs )
     updateCits(curstats, newlist.list, update)
-    curstats.reportCits( opts.plot, opts.window, opts.yscale )
     newlist.FullList(outpubfile,pubencoding)    
     curstats.writeStats(outcsvfile)
     #newlist.checkFiles()
-    newlist.writeHtml(opts.sort, dailydir, outroot)
     copyfile(monthdir+'/'+fileroot+'_nopaper.txt', monthdir+'/'+outroot+'_nopaper.txt')
-else:
-    curstats.reportCits( opts.plot, opts.window, opts.yscale )
-    mylist.writeHtml(opts.sort, dailydir, outroot)
+
+
+curstats.reportCits( opts.plot, opts.window, opts.yscale, theBibs, pltTags )
+mylist.writeHtml(opts.sort, dailydir, outroot)
     #mylist.checkFiles()
+    
+if (len(theBibs) != 0):
+    mylist.writeCSV(theBibs,dailydir,outroot)
+
